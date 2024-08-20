@@ -55,7 +55,14 @@ public class QueryService {
             .flatMapMany(query -> databaseClient.sql(query)
                 .fetch()
                 .all()
-                .map(result -> result.toString())
+                .doOnError(e -> {
+                // Log error details
+                System.err.println("Error executing query: " + e.getMessage());
+            })
+            .onErrorResume(e -> {
+                // Fallback logic (e.g., return an empty result)
+                return Flux.just("An error occurred, returning fallback value.");
+            })
             );
     }
 }
