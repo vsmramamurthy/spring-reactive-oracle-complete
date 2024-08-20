@@ -54,7 +54,8 @@ public class QueryService {
         return queryCacheService.getQueryByTemplateId(templateId)
             .flatMapMany(query -> databaseClient.sql(query)
                 .fetch()
-                .all()
+                .all()	
+ .doOnNext(result -> System.out.println("Result: " + result))	
                 .doOnError(e -> {
                 // Log error details
                 System.err.println("Error executing query: " + e.getMessage());
@@ -63,6 +64,7 @@ public class QueryService {
                 // Fallback logic (e.g., return an empty result)
                 return Flux.just("An error occurred, returning fallback value.");
             })
+.map(result -> result.toString());
             );
     }
 }

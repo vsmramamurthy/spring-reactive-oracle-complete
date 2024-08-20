@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories;
-import org.springframework.r2dbc.core.DatabaseClient;
+import org.springframework.r2dbc.core.DatabaseClient; 	
 import static io.r2dbc.spi.ConnectionFactoryOptions.*;
 
 @Configuration
@@ -16,7 +16,7 @@ public class DatabaseConfig {
 
       	@Bean
     public ConnectionFactory connectionFactory() {
-        ConnectionFactoryOptions options = ConnectionFactoryOptions.builder()
+        ConnectionFactoryOptions configuration = ConnectionFactoryOptions.builder()
             .option(DRIVER, "oracle")
             .option(PROTOCOL, "tcp")
             .option(HOST, "localhost")
@@ -25,9 +25,25 @@ public class DatabaseConfig {
             .option(USER, "yourUsername")
             .option(PASSWORD, "yourPassword")
             .option(PoolingConnectionFactoryProvider.MAX_SIZE, 10)
+.maxSize(20)  // Max number of connections
+            .initialSize(5)  // Initial number of connections
+            .maxIdleTime(Duration.ofMinutes(30))
+            .acquireRetry(3)
             .build();
 
-        return ConnectionFactories.get(options);
+        //return ConnectionFactories.get(options);
+
+	ConnectionPool pool = new ConnectionPool(configuration);
+        
+        pool.addListener(event -> {
+            if (event.isAcquire()) {
+                System.out.println("Connection acquired");
+            } else if (event.isRelease()) {
+                System.out.println("Connection released");
+            }
+        });
+
+        return pool;
     }
 
     @Bean

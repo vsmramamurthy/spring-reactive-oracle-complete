@@ -12,6 +12,8 @@ spring:
       logging.level.org.springframework.r2dbc=DEBUG
  	org.springframework.r2dbc.core: DEBUG
     io.r2dbc.spi: DEBUG
+com.zaxxer.hikari: DEBUG 	
+level.io.r2dbc.pool=DEBUG
   management:
     endpoints:
       web:
@@ -21,3 +23,11 @@ spring:
     export:
       prometheus:
         enabled: true
+datasource:
+    hikari:
+      metrics:
+        enabled: true
+      pool-name: myPool
+      maximum-pool-size: 20
+
+
