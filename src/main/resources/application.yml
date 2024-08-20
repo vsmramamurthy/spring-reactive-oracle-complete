@@ -1,0 +1,24 @@
+
+spring:
+  datasource:
+    hikari:
+      driver-class-name: oracle.jdbc.OracleDriver
+      jdbc-url: jdbc:oracle:thin:@//localhost:1521/xe
+      username: yourUsername
+      password: yourPassword
+      maximum-pool-size: 10
+
+logging:
+  level:
+    root: INFO
+    com.example.demo: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
