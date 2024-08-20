@@ -49,4 +49,13 @@ public class QueryService {
         }
         return query;
     }
+
+    public Flux<String> executeQueryWithoutParams(String templateId) {
+        return queryCacheService.getQueryByTemplateId(templateId)
+            .flatMapMany(query -> databaseClient.sql(query)
+                .fetch()
+                .all()
+                .map(result -> result.toString())
+            );
+    }
 }
