@@ -1,0 +1,18 @@
+spring:
+  r2dbc:
+    url: r2dbc:oracle://localhost:1521/xe
+    username: yourUsername
+    password: yourPassword
+  logging:
+    level:
+      root: INFO
+      com.example.demo: DEBUG
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
