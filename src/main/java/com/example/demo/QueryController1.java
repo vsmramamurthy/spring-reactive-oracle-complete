@@ -64,4 +64,9 @@ public class QueryController {
     public Flux<Map.Entry<String, String>> getAllQueries() {
         return queryCacheService.getAllQueries();
     }
+
+ @GetMapping("/executeWithoutParams")
+    public Flux<String> executeQueryWithoutParams(@RequestParam String templateId) {
+        return queryService.executeQueryWithoutParams(templateId);
+    }
 }
