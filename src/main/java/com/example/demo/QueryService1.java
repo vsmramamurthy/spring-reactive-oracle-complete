@@ -69,35 +69,6 @@ public class QueryService {
     }
 
 
-If databaseClient.sql is not fetching values from the database, there could be several reasons for this issue. Below are some steps and suggestions to troubleshoot and resolve the problem:
-
-1. Verify the SQL Query
-Ensure that the SQL query being executed is correct. The query should be well-formed and compatible with the Oracle database.
-
-1.1. Test the Query Manually
-Run the SQL query directly in your Oracle database using a tool like SQL*Plus, SQL Developer, or any other database client to ensure it returns the expected results.
-
-2. Check the DatabaseClient Configuration
-Ensure that the DatabaseClient is properly configured to connect to your Oracle database.
-
-2.1. Verify Connection Settings
-Ensure that your application.yml or application.properties has the correct database connection settings:
-
-yaml
-Copy code
-spring:
-  r2dbc:
-    url: r2dbc:oracle://localhost:1521/xe
-    username: your_username
-    password: your_password
-3. Debug the DatabaseClient Execution
-Add logging before and after the databaseClient.sql call to ensure it’s being executed correctly.
-
-3.1. Add Logging
-Add logging to the execution pipeline to capture the query being executed and any errors that occur:
-
-java
-Copy code
 public Flux<Map<String, Object>> executeQueryForList(String templateName, Map<String, Object> params) {
     return queryCacheService.getQueryByTemplateName(templateName)
         .flatMapMany(query -> {
