@@ -10,6 +10,8 @@ spring:
       logging.level.org.springframework=DEBUG
       logging.level.org.springframework.web=DEBUG
       logging.level.org.springframework.r2dbc=DEBUG
+ 	org.springframework.r2dbc.core: DEBUG
+    io.r2dbc.spi: DEBUG
   management:
     endpoints:
       web:
