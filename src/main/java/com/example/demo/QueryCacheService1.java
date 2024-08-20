@@ -26,4 +26,8 @@ public class QueryCacheService {
     public Mono<String> getQueryByTemplateId(String templateId) {
         return Mono.justOrEmpty(queryCache.get(templateId));
     }
+
+public Flux<Map.Entry<String, String>> getAllQueries() {
+        return Flux.fromIterable(queryCache.entrySet());
+    }
 }

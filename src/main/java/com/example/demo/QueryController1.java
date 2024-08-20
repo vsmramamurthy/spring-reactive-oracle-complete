@@ -59,4 +59,9 @@ public class QueryController {
                 .map(result -> ResponseEntity.ok().build())
                 .onErrorResume(e -> Mono.just(ResponseEntity.status(500).build()));
     }
+
+@GetMapping("/all")
+    public Flux<Map.Entry<String, String>> getAllQueries() {
+        return queryCacheService.getAllQueries();
+    }
 }
