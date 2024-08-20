@@ -14,9 +14,9 @@ import static io.r2dbc.spi.ConnectionFactoryOptions.*;
 @EnableR2dbcRepositories
 public class DatabaseConfig {
 
-    @Bean
+     @Bean
     public ConnectionFactory connectionFactory() {
-        return ConnectionFactoryOptions.builder()
+        ConnectionFactoryOptions options = ConnectionFactoryOptions.builder()
             .option(DRIVER, "oracle")
             .option(PROTOCOL, "tcp")
             .option(HOST, "localhost")
@@ -26,6 +26,8 @@ public class DatabaseConfig {
             .option(PASSWORD, "yourPassword")
             .option(PoolingConnectionFactoryProvider.MAX_SIZE, 10)
             .build();
+
+        return ConnectionFactories.get(options);
     }
 
     @Bean
