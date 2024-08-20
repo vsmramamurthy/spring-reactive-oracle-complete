@@ -1,0 +1,12 @@
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/base.xml"/>
+
+    <logger name="org.springframework" level="DEBUG"/>
+    <logger name="org.springframework.r2dbc.core" level="DEBUG"/>
+    <logger name="io.r2dbc.spi" level="DEBUG"/>
+    <logger name="org.springframework.data.r2dbc" level="DEBUG"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>
