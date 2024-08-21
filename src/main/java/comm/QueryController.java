@@ -65,7 +65,22 @@ public class QueryController {
 public Mono<List<List<Map<String, Object>>>> executeMultipleQueries(
         @RequestBody Map<String, Object> request) {
 
-    String[] templateIds = ((List<String>) request.get("templateIds")).toArray(new String[0]);
+    // Safely retrieve the templateIds
+    Object templateIdsObj = request.get("templateIds");
+    String[] templateIds;
+
+    if (templateIdsObj instanceof List) {
+        List<?> templateIdsList = (List<?>) templateIdsObj;
+
+        // Ensure that every item in the list is a String
+        templateIds = templateIdsList.stream()
+                                     .filter(item -> item instanceof String)
+                                     .map(String.class::cast)
+                                     .toArray(String[]::new);
+    } else {
+        throw new IllegalArgumentException("templateIds must be a list of strings");
+    }
+	
     List<List<Object>> paramsList = (List<List<Object>>) request.get("params");
 
    Object[][] params = convertListTo2DArray(paramsList);
