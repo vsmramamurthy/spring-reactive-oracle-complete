@@ -497,5 +497,53 @@ public class QueryExecutionService {
         call.append(")}");
         return call.toString();
     }
+    
+	
+	public Mono<Map<String, Object>> executeProcedure(Map<String, Object> requestBody) {
+        return Mono.fromCallable(() -> {
+            String schemaName = (String) requestBody.get("schemaName");
+            String catalogName = (String) requestBody.get("catalogName");
+            String procedureName = (String) requestBody.get("procedureName");
+
+            Map<String, String> inParams = (Map<String, String>) requestBody.get("inParams");
+            Map<String, String> outParams = (Map<String, String>) requestBody.get("outParams");
+
+            String callStatement = buildProcedureCall(schemaName, catalogName, procedureName, inParams.size(), outParams.size());
+
+            try (Connection connection = dataSource.getConnection();
+                 CallableStatement callableStatement = connection.prepareCall(callStatement)) {
+
+                // Set IN parameters
+                int index = 1;
+                for (Map.Entry<String, String> entry : inParams.entrySet()) {
+                    callableStatement.setString(index, entry.getValue());
+                    index++;
+                }
+
+                // Register OUT parameters with default SQL type (e.g., VARCHAR)
+                index = inParams.size() + 1;
+                for (Map.Entry<String, String> entry : outParams.entrySet()) {
+                    callableStatement.registerOutParameter(index, Types.VARCHAR);
+                    index++;
+                }
+
+                // Execute the procedure
+                callableStatement.execute();
+
+                // Retrieve OUT parameters
+                Map<String, Object> resultMap = new HashMap<>();
+                index = inParams.size() + 1;
+                for (String paramName : outParams.keySet()) {
+                    resultMap.put(paramName, callableStatement.getString(index));
+                    index++;
+                }
+
+                return resultMap;
+
+            } catch (SQLException e) {
+                e.printStackTrace(); // Replace with proper logging
+                throw new RuntimeException("Error executing procedure", e);
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 }
