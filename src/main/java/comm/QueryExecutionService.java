@@ -73,6 +73,26 @@ public class QueryExecutionService {
             return null;
         }).subscribeOn(Schedulers.boundedElastic());
     }
+	
+	 public Mono<String> executeSingleQuery(String templateId) {
+        return Mono.fromCallable(() -> {
+            String query = queryCache.get(templateId);
+            if (query == null) {
+                throw new IllegalArgumentException("Invalid template ID");
+            }
+
+            try (Connection connection = hikariDataSource.getConnection();
+                 OraclePreparedStatement statement = (OraclePreparedStatement) connection.prepareStatement(query)) {
+
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (resultSet.next()) {
+                        return resultSet.getString(1); // Assuming single column result
+                    }
+                }
+            }
+            return null;
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
 
     public Mono<Void> executeMultipleQueries(String[] templateIds, Object[][] params) {
         return Mono.fromRunnable(() -> {

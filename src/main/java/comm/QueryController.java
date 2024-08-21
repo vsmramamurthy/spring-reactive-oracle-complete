@@ -33,6 +33,12 @@ public class QueryController {
         queryExecutionService.refreshQueryCache();
     }
 
+
+   @PostMapping("/executeSingle")
+    public Mono<String> executeSingleQuery(@RequestParam String templateId) {
+        return queryExecutionService.executeSingleQuery(templateId);
+    }
+	
     @PostMapping("/executeSingle")
     public Mono<String> executeSingleQuery(@RequestParam String templateId, @RequestParam Object[] params) {
         return queryExecutionService.executeSingleQuery(templateId, params);
