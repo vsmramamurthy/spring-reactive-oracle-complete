@@ -308,4 +308,116 @@ public class QueryExecutionService {
         call.append(")}");
         return call.toString();
     }
+	
+	
+	
+	
+	---------------------------------------------------------------------
+	
+	
+	public Mono<Map<String, Object>> executeProcedure(Map<String, Object> requestBody) {
+        return Mono.fromCallable(() -> {
+            String schemaName = (String) requestBody.get("schemaName");
+            String catalogName = (String) requestBody.get("catalogName");
+            String procedureName = (String) requestBody.get("procedureName");
+
+            Map<String, String> inParams = (Map<String, String>) requestBody.get("inParams");
+            Map<String, String> outParams = (Map<String, String>) requestBody.get("outParams");
+
+            String callStatement = buildProcedureCall(schemaName, catalogName, procedureName, inParams.size(), outParams.size());
+
+            try (Connection connection = dataSource.getConnection();
+                 CallableStatement callableStatement = connection.prepareCall(callStatement)) {
+
+                // Set IN parameters
+                int index = 1;
+                for (Map.Entry<String, String> entry : inParams.entrySet()) {
+                    String value = entry.getValue();
+                    callableStatement.setObject(index, convertToJDBCType(value));
+                    index++;
+                }
+
+                // Register OUT parameters
+                index = inParams.size() + 1;
+                for (Map.Entry<String, String> entry : outParams.entrySet()) {
+                    String sqlType = entry.getValue();
+                    callableStatement.registerOutParameter(index, convertSQLType(sqlType));
+                    index++;
+                }
+
+                // Execute the procedure
+                callableStatement.execute();
+
+                // Retrieve OUT parameters
+                Map<String, Object> resultMap = new HashMap<>();
+                index = inParams.size() + 1;
+                for (String paramName : outParams.keySet()) {
+                    resultMap.put(paramName, callableStatement.getObject(index));
+                    index++;
+                }
+
+                return resultMap;
+
+            } catch (SQLException e) {
+                e.printStackTrace(); // Replace with proper logging
+                throw new RuntimeException("Error executing procedure", e);
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private String buildProcedureCall(String schemaName, String catalogName, String procedureName, int inParamsCount, int outParamsCount) {
+        StringBuilder call = new StringBuilder();
+        call.append("{call ");
+
+        if (schemaName != null && !schemaName.isEmpty()) {
+            call.append(schemaName).append(".");
+        }
+
+        if (catalogName != null && !catalogName.isEmpty()) {
+            call.append(catalogName).append(".");
+        }
+
+        call.append(procedureName).append("(");
+
+        int totalParams = inParamsCount + outParamsCount;
+        for (int i = 0; i < totalParams; i++) {
+            if (i > 0) {
+                call.append(", ");
+            }
+            call.append("?");
+        }
+
+        call.append(")}");
+        return call.toString();
+    }
+
+    private Object convertToJDBCType(String value) {
+        // Simple conversion logic based on the value format
+        if (value.matches("-?\\d+")) {
+            return Integer.parseInt(value);  // Convert to Integer
+        } else if (value.matches("-?\\d+(\\.\\d+)?")) {
+            return Double.parseDouble(value);  // Convert to Double
+        } else {
+            return value;  // Treat as String
+        }
+    }
+
+    private int convertSQLType(String sqlType) {
+        switch (sqlType.toUpperCase()) {
+            case "VARCHAR":
+                return Types.VARCHAR;
+            case "NUMERIC":
+                return Types.NUMERIC;
+            case "INTEGER":
+                return Types.INTEGER;
+            case "FLOAT":
+                return Types.FLOAT;
+            case "DOUBLE":
+                return Types.DOUBLE;
+            case "DATE":
+                return Types.DATE;
+            default:
+                throw new IllegalArgumentException("Unsupported SQL type: " + sqlType);
+        }
+    }
 }

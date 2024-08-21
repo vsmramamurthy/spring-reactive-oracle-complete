@@ -139,7 +139,10 @@ public Mono<List<List<Map<String, Object>>>> executeMultipleQueries(
         return queryExecutionService.executeProcedure(schemaName, catalogName, procedureName, inParams, outParams);
     }
 	
-	
+	@PostMapping("/executeProcedure")
+    public Mono<Map<String, Object>> executeProcedure(@RequestBody Map<String, Object> requestBody) {
+        return queryExecutionService.executeProcedure(requestBody);
+    }
     @GetMapping("/status")
     public Mono<String> getStatus() {
         return Mono.just("Service is running");
