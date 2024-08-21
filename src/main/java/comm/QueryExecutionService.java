@@ -74,6 +74,41 @@ public class QueryExecutionService {
         }).subscribeOn(Schedulers.boundedElastic());
     }
 	
+	
+	public Mono<List<Map<String, Object>>> executeSingleQuery(String templateId, Object... params) {
+    return Mono.fromCallable(() -> {
+        String query = queryCache.get(templateId);
+        if (query == null) {
+            throw new IllegalArgumentException("Invalid template ID");
+        }
+
+        List<Map<String, Object>> results = new ArrayList<>();
+
+        try (Connection connection = hikariDataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            // Ensure that each parameter is set in the PreparedStatement
+            for (int i = 0; i < params.length; i++) {
+                statement.setObject(i + 1, params[i]); // Parameters are 1-indexed in JDBC
+            }
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                ResultSetMetaData metaData = resultSet.getMetaData();
+                int columnCount = metaData.getColumnCount();
+
+                while (resultSet.next()) {
+                    Map<String, Object> row = new HashMap<>();
+                    for (int j = 1; j <= columnCount; j++) {
+                        row.put(metaData.getColumnName(j), resultSet.getObject(j));
+                    }
+                    results.add(row);
+                }
+            }
+        }
+
+        return results;
+    }).subscribeOn(Schedulers.boundedElastic());
+}
 	public Mono<List<Map<String, Object>>> executeSingleQuery(String templateId) {
         return Mono.fromCallable(() -> {
             String query = queryCache.get(templateId);
