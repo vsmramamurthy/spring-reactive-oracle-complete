@@ -67,19 +67,8 @@ public Mono<List<List<Map<String, Object>>>> executeMultipleQueries(
 
     // Safely retrieve the templateIds
     Object templateIdsObj = request.get("templateIds");
-    String[] templateIds;
-
-    if (templateIdsObj instanceof List) {
-        List<?> templateIdsList = (List<?>) templateIdsObj;
-
-        // Ensure that every item in the list is a String
-        templateIds = templateIdsList.stream()
-                                     .filter(item -> item instanceof String)
-                                     .map(String.class::cast)
-                                     .toArray(String[]::new);
-    } else {
-        throw new IllegalArgumentException("templateIds must be a list of strings");
-    }
+ ObjectMapper objectMapper = new ObjectMapper();
+            List<String> list = objectMapper.readValue((String) templateIdsObj, new TypeReference<List<String>>() {});
 	
     List<List<Object>> paramsList = (List<List<Object>>) request.get("params");
 
