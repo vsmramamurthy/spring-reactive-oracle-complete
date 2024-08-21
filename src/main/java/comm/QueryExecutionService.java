@@ -516,7 +516,7 @@ public class QueryExecutionService {
                 // Set IN parameters
                 int index = 1;
                 for (Map.Entry<String, String> entry : inParams.entrySet()) {
-                    callableStatement.setString(index, entry.getValue());
+                   callableStatement.setObject(index, convertToObject(entry.getValue()));
                     index++;
                 }
 
@@ -545,5 +545,15 @@ public class QueryExecutionService {
                 throw new RuntimeException("Error executing procedure", e);
             }
         }).subscribeOn(Schedulers.boundedElastic());
+    }
+	
+	private Object convertToObject(String value) {
+        // Simple type conversion logic; this can be expanded
+        try {
+            return Integer.parseInt(value); // Attempt to convert to Integer
+        } catch (NumberFormatException e) {
+            // If it's not an integer, return as a String
+            return value;
+        }
     }
 }
