@@ -68,12 +68,18 @@ public Mono<List<List<Map<String, Object>>>> executeMultipleQueries(
     String[] templateIds = ((List<String>) request.get("templateIds")).toArray(new String[0]);
     List<List<Object>> paramsList = (List<List<Object>>) request.get("params");
 
-    // Convert List<List<Object>> to Object[][]
-    Object[][] params = paramsList.stream()
-            .map(l -> l.toArray(new Object[0]))
-            .toArray(Object[][]::new);
+   Object[][] params = convertListTo2DArray(paramsList);
 
-    return queryExecutionService.executeMultipleQueries(templateIds, params);
+	Object[][] array = new Object[paramsList.size()][];
+
+        for (int i = 0; i < list.size(); i++) {
+            array[i] = list.get(i).toArray(new Object[0]);  // Convert each list to an Object array
+        }
+
+        
+			
+
+    return queryExecutionService.executeMultipleQueries(templateIds, array);
 }
 
     @GetMapping("/status")
