@@ -74,23 +74,32 @@ public class QueryExecutionService {
         }).subscribeOn(Schedulers.boundedElastic());
     }
 	
-	 public Mono<String> executeSingleQuery(String templateId) {
+	public Mono<List<Map<String, Object>>> executeSingleQuery(String templateId) {
         return Mono.fromCallable(() -> {
             String query = queryCache.get(templateId);
             if (query == null) {
                 throw new IllegalArgumentException("Invalid template ID");
             }
 
-            try (Connection connection = hikariDataSource.getConnection();
-                 OraclePreparedStatement statement = (OraclePreparedStatement) connection.prepareStatement(query)) {
+            List<Map<String, Object>> results = new ArrayList<>();
 
-                try (ResultSet resultSet = statement.executeQuery()) {
-                    if (resultSet.next()) {
-                        return resultSet.getString(1); // Assuming single column result
+            try (Connection connection = hikariDataSource.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(query);
+                 ResultSet resultSet = statement.executeQuery()) {
+
+                ResultSetMetaData metaData = resultSet.getMetaData();
+                int columnCount = metaData.getColumnCount();
+
+                while (resultSet.next()) {
+                    Map<String, Object> row = new HashMap<>();
+                    for (int i = 1; i <= columnCount; i++) {
+                        row.put(metaData.getColumnName(i), resultSet.getObject(i));
                     }
+                    results.add(row);
                 }
             }
-            return null;
+
+            return results;
         }).subscribeOn(Schedulers.boundedElastic());
     }
 
