@@ -93,17 +93,14 @@ public Mono<List<List<Map<String, Object>>>> executeMultipleQueries(
 
         // Extract templateIds
         Object templateIdsObj = request.get("templateIds");
-        String[] templateIds;
-
-        if (templateIdsObj instanceof List) {
-            List<?> templateIdsList = (List<?>) templateIdsObj;
-            templateIds = templateIdsList.stream()
-                                         .filter(item -> item instanceof String)
-                                         .map(String.class::cast)
-                                         .toArray(String[]::new);
-        } else {
-            throw new IllegalArgumentException("templateIds must be a list of strings");
+      if (!(templateIdsObj instanceof List)) {
+            throw new IllegalArgumentException("templateIds should be a list");
         }
+
+        List<?> templateIdsList = (List<?>) templateIdsObj;
+        String[] templateIds = templateIdsList.stream()
+                                              .map(Object::toString) // Convert each element to a string
+                                              .toArray(String[]::new);
 
         // Extract params
         Object paramsObj = request.get("params");
