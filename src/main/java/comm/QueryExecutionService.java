@@ -191,6 +191,48 @@ public class QueryExecutionService {
             }
         }).subscribeOn(Schedulers.boundedElastic()).then();
     }
+	
+	public Mono<List<List<Map<String, Object>>>> executeMultipleQueries(String[] templateIds, Object[][] params) {
+        return Mono.fromCallable(() -> {
+            List<List<Map<String, Object>>> allResults = new ArrayList<>();
+
+            try (Connection connection = hikariDataSource.getConnection()) {
+                for (int i = 0; i < templateIds.length; i++) {
+                    String query = queryCache.get(templateIds[i]);
+                    if (query == null) {
+                        throw new IllegalArgumentException("Invalid template ID: " + templateIds[i]);
+                    }
+
+                    List<Map<String, Object>> resultSetList = new ArrayList<>();
+
+                    try (PreparedStatement statement = connection.prepareStatement(query)) {
+                        for (int j = 0; j < params[i].length; j++) {
+                            statement.setObject(j + 1, params[i][j]); // Parameters are 1-indexed
+                        }
+
+                        try (ResultSet resultSet = statement.executeQuery()) {
+                            ResultSetMetaData metaData = resultSet.getMetaData();
+                            int columnCount = metaData.getColumnCount();
+
+                            while (resultSet.next()) {
+                                Map<String, Object> row = new HashMap<>();
+                                for (int k = 1; k <= columnCount; k++) {
+                                    row.put(metaData.getColumnName(k), resultSet.getObject(k));
+                                }
+                                resultSetList.add(row);
+                            }
+                        }
+                    }
+                    allResults.add(resultSetList); // Add each result set to the list of result sets
+                }
+            } catch (SQLException e) {
+                e.printStackTrace(); // Implement proper logging
+                throw new RuntimeException("Database query execution failed", e);
+            }
+
+            return allResults;
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
 
     public Mono<String> executeProcedure(String procedureName, Object... params) {
         return Mono.fromCallable(() -> {
