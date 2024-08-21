@@ -233,6 +233,25 @@ public class QueryExecutionService {
             return allResults;
         }).subscribeOn(Schedulers.boundedElastic());
     }
+	
+	private boolean isInteger(String value) {
+        try {
+            Integer.parseInt(value);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    private boolean isDouble(String value) {
+        try {
+            Double.parseDouble(value);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
 
     public Mono<String> executeProcedure(String procedureName, Object... params) {
         return Mono.fromCallable(() -> {
@@ -263,14 +282,12 @@ public class QueryExecutionService {
                 for (Map.Entry<Integer, String> entry : inParams.entrySet()) {
                     Integer paramIndex = entry.getKey();
                     String paramValue = entry.getValue();
-
-                    // Attempt to parse the string into different types based on expected format
-                    if (paramValue.matches("-?\\d+")) {  // Matches integers
-                        callableStatement.setInt(paramIndex, Integer.parseInt(paramValue));
-                    } else if (paramValue.matches("-?\\d+(\\.\\d+)?")) {  // Matches floating-point numbers
-                        callableStatement.setDouble(paramIndex, Double.parseDouble(paramValue));
+if (isInteger(value)) {
+                        callableStatement.setInt(index, Integer.parseInt(value));
+                    } else if (isDouble(value)) {
+                        callableStatement.setDouble(index, Double.parseDouble(value));
                     } else {
-                        callableStatement.setString(paramIndex, paramValue);  // Treat as string if not a number
+                        callableStatement.setString(index, value);
                     }
                 }
 
