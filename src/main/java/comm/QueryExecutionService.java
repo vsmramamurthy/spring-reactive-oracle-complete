@@ -341,6 +341,18 @@ public class QueryExecutionService {
                 for (Map.Entry<Integer, Integer> entry : outParams.entrySet()) {
                     resultMap.put("OUT_PARAM_" + entry.getKey(), callableStatement.getObject(entry.getKey()));
                 }
+				
+				 // Retrieve OUT parameters
+                Map<String, Object> resultMap = new HashMap<>();
+                for (Map.Entry<Integer, Integer> entry : outParams.entrySet()) {
+                    Object result;
+                    if (entry.getValue() == OracleTypes.CURSOR) {
+                        result = callableStatement.getObject(entry.getKey());
+                    } else {
+                        result = callableStatement.getObject(entry.getKey());
+                    }
+                    resultMap.put("OUT_PARAM_" + entry.getKey(), result);
+                }
 
                 return resultMap;
 
