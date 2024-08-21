@@ -250,4 +250,62 @@ public class QueryExecutionService {
             }
         }).subscribeOn(Schedulers.boundedElastic());
     }
+	
+	   public Mono<Map<String, Object>> executeProcedure(String schemaName, String catalogName, String procedureName,
+                                                      Map<Integer, Object> inParams, Map<Integer, Integer> outParams) {
+        return Mono.fromCallable(() -> {
+            String callStatement = buildProcedureCall(schemaName, catalogName, procedureName, inParams.size(), outParams.size());
+
+            try (Connection connection = dataSource.getConnection();
+                 CallableStatement callableStatement = connection.prepareCall(callStatement)) {
+
+                for (Map.Entry<Integer, Object> entry : inParams.entrySet()) {
+                    callableStatement.setObject(entry.getKey(), entry.getValue());
+                }
+
+                for (Map.Entry<Integer, Integer> entry : outParams.entrySet()) {
+                    callableStatement.registerOutParameter(entry.getKey(), entry.getValue());
+                }
+
+                callableStatement.execute();
+
+                Map<String, Object> resultMap = new HashMap<>();
+                for (Map.Entry<Integer, Integer> entry : outParams.entrySet()) {
+                    resultMap.put("OUT_PARAM_" + entry.getKey(), callableStatement.getObject(entry.getKey()));
+                }
+
+                return resultMap;
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+                throw new RuntimeException("Error executing procedure", e);
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private String buildProcedureCall(String schemaName, String catalogName, String procedureName, int inParamsCount, int outParamsCount) {
+        StringBuilder call = new StringBuilder();
+        call.append("{call ");
+
+        if (schemaName != null && !schemaName.isEmpty()) {
+            call.append(schemaName).append(".");
+        }
+
+        if (catalogName != null && !catalogName.isEmpty()) {
+            call.append(catalogName).append(".");
+        }
+
+        call.append(procedureName).append("(");
+
+        int totalParams = inParamsCount + outParamsCount;
+        for (int i = 0; i < totalParams; i++) {
+            if (i > 0) {
+                call.append(", ");
+            }
+            call.append("?");
+        }
+
+        call.append(")}");
+        return call.toString();
+    }
 }
