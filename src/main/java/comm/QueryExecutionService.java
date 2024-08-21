@@ -270,6 +270,23 @@ public class QueryExecutionService {
         }).subscribeOn(Schedulers.boundedElastic());
     }
 	
+	   private Map<Integer, String> castToIntegerStringMap(Object obj) {
+        if (obj instanceof Map) {
+            Map<?, ?> genericMap = (Map<?, ?>) obj;
+            Map<Integer, String> typedMap = new HashMap<>();
+            for (Map.Entry<?, ?> entry : genericMap.entrySet()) {
+                if (entry.getKey() instanceof Integer && entry.getValue() instanceof String) {
+                    typedMap.put((Integer) entry.getKey(), (String) entry.getValue());
+                } else {
+                    throw new IllegalArgumentException("Invalid map types for inParams or outParams");
+                }
+            }
+            return typedMap;
+        } else {
+            throw new IllegalArgumentException("Expected a map but got: " + obj.getClass());
+        }
+    }
+	
 	   public Mono<Map<String, Object>> executeProcedure(String schemaName, String catalogName, String procedureName,
                                                       Map<Integer, Object> inParams, Map<Integer, Integer> outParams) {
         return Mono.fromCallable(() -> {
@@ -277,6 +294,11 @@ public class QueryExecutionService {
 
             try (Connection connection = dataSource.getConnection();
                  CallableStatement callableStatement = connection.prepareCall(callStatement)) {
+
+
+ // Attempt to safely cast inParams and outParams
+            Map<Integer, String> inParams = castToIntegerStringMap(requestBody.get("inParams"));
+            Map<Integer, String> outParams = castToIntegerStringMap(requestBody.get("outParams"));
 
                // Set IN parameters with appropriate type conversion
                 for (Map.Entry<Integer, String> entry : inParams.entrySet()) {
