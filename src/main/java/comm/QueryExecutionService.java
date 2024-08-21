@@ -259,8 +259,19 @@ public class QueryExecutionService {
             try (Connection connection = dataSource.getConnection();
                  CallableStatement callableStatement = connection.prepareCall(callStatement)) {
 
-                for (Map.Entry<Integer, Object> entry : inParams.entrySet()) {
-                    callableStatement.setObject(entry.getKey(), entry.getValue());
+               // Set IN parameters with appropriate type conversion
+                for (Map.Entry<Integer, String> entry : inParams.entrySet()) {
+                    Integer paramIndex = entry.getKey();
+                    String paramValue = entry.getValue();
+
+                    // Attempt to parse the string into different types based on expected format
+                    if (paramValue.matches("-?\\d+")) {  // Matches integers
+                        callableStatement.setInt(paramIndex, Integer.parseInt(paramValue));
+                    } else if (paramValue.matches("-?\\d+(\\.\\d+)?")) {  // Matches floating-point numbers
+                        callableStatement.setDouble(paramIndex, Double.parseDouble(paramValue));
+                    } else {
+                        callableStatement.setString(paramIndex, paramValue);  // Treat as string if not a number
+                    }
                 }
 
                 for (Map.Entry<Integer, Integer> entry : outParams.entrySet()) {
