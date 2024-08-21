@@ -93,14 +93,14 @@ public Mono<List<List<Map<String, Object>>>> executeMultipleQueries(
 
         // Extract templateIds
         Object templateIdsObj = request.get("templateIds");
-        List<String> templateIds;
+        String[] templateIds;
 
         if (templateIdsObj instanceof List) {
             List<?> templateIdsList = (List<?>) templateIdsObj;
             templateIds = templateIdsList.stream()
                                          .filter(item -> item instanceof String)
                                          .map(String.class::cast)
-                                         .collect(Collectors.toList());
+                                         .toArray(String[]::new);
         } else {
             throw new IllegalArgumentException("templateIds must be a list of strings");
         }
