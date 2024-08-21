@@ -69,7 +69,7 @@ public Mono<List<List<Map<String, Object>>>> executeMultipleQueries(
     Object templateIdsObj = request.get("templateIds");
  ObjectMapper objectMapper = new ObjectMapper();
             List<String> list = objectMapper.readValue((String) templateIdsObj, new TypeReference<List<String>>() {});
-	
+	String[] stringArray = list.toArray(new String[0]);
     List<List<Object>> paramsList = (List<List<Object>>) request.get("params");
 
    Object[][] params = convertListTo2DArray(paramsList);
@@ -85,6 +85,52 @@ public Mono<List<List<Map<String, Object>>>> executeMultipleQueries(
 
     return queryExecutionService.executeMultipleQueries(templateIds, array);
 }
+
+
+@PostMapping("/executeMultiple")
+    public Mono<List<List<Map<String, Object>>>> executeMultipleQueries(
+            @RequestBody Map<String, Object> request) {
+
+        // Extract templateIds
+        Object templateIdsObj = request.get("templateIds");
+        List<String> templateIds;
+
+        if (templateIdsObj instanceof List) {
+            List<?> templateIdsList = (List<?>) templateIdsObj;
+            templateIds = templateIdsList.stream()
+                                         .filter(item -> item instanceof String)
+                                         .map(String.class::cast)
+                                         .collect(Collectors.toList());
+        } else {
+            throw new IllegalArgumentException("templateIds must be a list of strings");
+        }
+
+        // Extract params
+        Object paramsObj = request.get("params");
+        Object[][] params;
+
+        if (paramsObj instanceof List) {
+            List<?> paramsList = (List<?>) paramsObj;
+            params = paramsList.stream()
+                               .map(item -> {
+                                   if (item instanceof List) {
+                                       List<?> innerList = (List<?>) item;
+                                       return innerList.toArray(new Object[0]);
+                                   } else {
+                                       throw new IllegalArgumentException("params must be a list of lists");
+                                   }
+                               })
+                               .toArray(Object[][]::new);
+        } else {
+            throw new IllegalArgumentException("params must be a list of lists");
+        }
+
+        // Now you can use templateIds and params in your service call
+        return queryExecutionService.executeMultipleQueries(
+                templateIds.toArray(new String[0]), 
+                params
+        );
+    }
 
     @GetMapping("/status")
     public Mono<String> getStatus() {
