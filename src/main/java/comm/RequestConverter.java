@@ -36,15 +36,29 @@ public class RequestConverter {
     }
 
     public static Map<Integer, String> convertOutParams(Map<String, String> outParams) {
-        Map<Integer, String> convertedOutParams = new HashMap<>();
+        Map<Integer, Integer> convertedOutParams = new HashMap<>();
 
         for (Map.Entry<String, String> entry : outParams.entrySet()) {
-            Integer key = Integer.parseInt(entry.getKey());  // Convert the key from String to Integer
-            convertedOutParams.put(key, entry.getValue());   // Value is kept as a String
+            Integer key = Integer.parseInt(entry.getKey());
+            String value = entry.getValue().toUpperCase();
+
+            switch (value) {
+                case "NUMBER":
+                    convertedOutParams.put(key, Types.NUMERIC);
+                    break;
+                case "VARCHAR":
+                    convertedOutParams.put(key, Types.VARCHAR);
+                    break;
+                case "CURSOR":
+                    convertedOutParams.put(key, OracleTypes.CURSOR);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported OracleType for key " + key + ": " + value);
+            }
         }
 
         return convertedOutParams;
-    }
+   }
 
     private static boolean isInteger(String value) {
         try {
