@@ -1,11 +1,12 @@
 package com.example.service;
 
+import oracle.jdbc.OraclePreparedStatement;
+import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import javax.annotation.PostConstruct;
-import javax.sql.DataSource;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,17 +14,17 @@ import java.util.Map;
 @Service
 public class QueryExecutionService {
 
-    private final DataSource dataSource;
+    private final HikariDataSource hikariDataSource;
     private final Map<String, String> queryCache = new HashMap<>();
 
-    public QueryExecutionService(DataSource dataSource) {
-        this.dataSource = dataSource;
+    public QueryExecutionService(HikariDataSource hikariDataSource) {
+        this.hikariDataSource = hikariDataSource;
     }
 
     @PostConstruct
     public void loadQueryCache() {
         String loadQuery = "SELECT template_id, query_string FROM db_template";
-        try (Connection connection = dataSource.getConnection();
+        try (Connection connection = hikariDataSource.getConnection();
              Statement statement = connection.createStatement();
              ResultSet resultSet = statement.executeQuery(loadQuery)) {
             
@@ -56,8 +57,8 @@ public class QueryExecutionService {
                 throw new IllegalArgumentException("Invalid template ID");
             }
 
-            try (Connection connection = dataSource.getConnection();
-                 PreparedStatement statement = connection.prepareStatement(query)) {
+            try (Connection connection = hikariDataSource.getConnection();
+                 OraclePreparedStatement statement = (OraclePreparedStatement) connection.prepareStatement(query)) {
 
                 for (int i = 0; i < params.length; i++) {
                     statement.setObject(i + 1, params[i]);
@@ -75,14 +76,14 @@ public class QueryExecutionService {
 
     public Mono<Void> executeMultipleQueries(String[] templateIds, Object[][] params) {
         return Mono.fromRunnable(() -> {
-            try (Connection connection = dataSource.getConnection()) {
+            try (Connection connection = hikariDataSource.getConnection()) {
                 for (int i = 0; i < templateIds.length; i++) {
                     String query = queryCache.get(templateIds[i]);
                     if (query == null) {
                         throw new IllegalArgumentException("Invalid template ID");
                     }
 
-                    try (PreparedStatement statement = connection.prepareStatement(query)) {
+                    try (OraclePreparedStatement statement = (OraclePreparedStatement) connection.prepareStatement(query)) {
                         for (int j = 0; j < params[i].length; j++) {
                             statement.setObject(j + 1, params[i][j]);
                         }
@@ -97,7 +98,7 @@ public class QueryExecutionService {
 
     public Mono<String> executeProcedure(String procedureName, Object... params) {
         return Mono.fromCallable(() -> {
-            try (Connection connection = dataSource.getConnection();
+            try (Connection connection = hikariDataSource.getConnection();
                  CallableStatement callableStatement = connection.prepareCall("{call " + procedureName + "(?, ?)}")) {
 
                 for (int i = 0; i < params.length; i++) {
