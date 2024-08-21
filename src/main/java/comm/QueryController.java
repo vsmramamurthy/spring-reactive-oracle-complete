@@ -43,6 +43,13 @@ public class QueryController {
     public Mono<String> executeSingleQuery(@RequestParam String templateId, @RequestParam Object[] params) {
         return queryExecutionService.executeSingleQuery(templateId, params);
     }
+	
+	@GetMapping("/executeSingle")
+    public Flux<Map<String, Object>> executeSingleQuery(
+            @RequestParam String templateId,
+            @RequestParam(defaultValue = "50") int fetchSize) {
+        return queryExecutionService.executeSingleQuery(templateId, fetchSize);
+    }
 
     @PostMapping("/executeMultiple")
     public Mono<Void> executeMultipleQueries(@RequestParam String[] templateIds, @RequestParam Object[][] params) {
