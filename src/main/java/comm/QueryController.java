@@ -60,6 +60,21 @@ public class QueryController {
     public Mono<String> executeProcedure(@RequestParam String procedureName, @RequestParam Object[] params) {
         return queryExecutionService.executeProcedure(procedureName, params);
     }
+	
+	@PostMapping("/executeMultiple")
+public Mono<List<List<Map<String, Object>>>> executeMultipleQueries(
+        @RequestBody Map<String, Object> request) {
+
+    String[] templateIds = ((List<String>) request.get("templateIds")).toArray(new String[0]);
+    List<List<Object>> paramsList = (List<List<Object>>) request.get("params");
+
+    // Convert List<List<Object>> to Object[][]
+    Object[][] params = paramsList.stream()
+            .map(l -> l.toArray(new Object[0]))
+            .toArray(Object[][]::new);
+
+    return queryExecutionService.executeMultipleQueries(templateIds, params);
+}
 
     @GetMapping("/status")
     public Mono<String> getStatus() {
