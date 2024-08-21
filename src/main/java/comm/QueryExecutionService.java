@@ -16,6 +16,7 @@ public class QueryExecutionService {
 
     private final HikariDataSource hikariDataSource;
     private final Map<String, String> queryCache = new HashMap<>();
+ private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy HH.mm");
 
     public QueryExecutionService(HikariDataSource hikariDataSource) {
         this.hikariDataSource = hikariDataSource;
@@ -287,6 +288,15 @@ public class QueryExecutionService {
         }
     }
 	
+	 private static boolean isDate(String value) {
+        try {
+            DATE_FORMAT.parse(value);
+            return true;
+        } catch (ParseException e) {
+            return false;
+        }
+    }
+	
 	   public Mono<Map<String, Object>> executeProcedure(String schemaName, String catalogName, String procedureName,
                                                       Map<Integer, Object> inParams, Map<Integer, Integer> outParams) {
         return Mono.fromCallable(() -> {
@@ -304,13 +314,21 @@ public class QueryExecutionService {
                 for (Map.Entry<Integer, String> entry : inParams.entrySet()) {
                     Integer paramIndex = entry.getKey();
                     String paramValue = entry.getValue();
-if (isInteger(value)) {
-                        callableStatement.setInt(index, Integer.parseInt(value));
-                    } else if (isDouble(value)) {
-                        callableStatement.setDouble(index, Double.parseDouble(value));
-                    } else {
-                        callableStatement.setString(index, value);
-                    }
+// Attempt to determine the appropriate type for the value
+            if (isInteger(value)) {
+                convertedInParams.put(key, Integer.parseInt(value));
+            } else if (isDouble(value)) {
+                convertedInParams.put(key, Double.parseDouble(value));
+            } else if (isDate(value)) {
+                try {
+                    Date dateValue = DATE_FORMAT.parse(value);
+                    convertedInParams.put(key, new java.sql.Timestamp(dateValue.getTime()));
+                } catch (ParseException e) {
+                    throw new IllegalArgumentException("Invalid date format for key " + key + ": " + value);
+                }
+            } else {
+                convertedInParams.put(key, value);  // Default to treating it as a String
+            }
                 }
 
                 for (Map.Entry<Integer, Integer> entry : outParams.entrySet()) {
