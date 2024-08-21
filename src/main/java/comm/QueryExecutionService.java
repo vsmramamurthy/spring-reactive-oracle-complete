@@ -102,6 +102,38 @@ public class QueryExecutionService {
             return results;
         }).subscribeOn(Schedulers.boundedElastic());
     }
+	
+	 public Flux<Map<String, Object>> executeSingleQuery(String templateId, int fetchSize) {
+        return Flux.create(sink -> {
+            String query = queryCache.get(templateId);
+            if (query == null) {
+                sink.error(new IllegalArgumentException("Invalid template ID"));
+                return;
+            }
+
+            try (Connection connection = hikariDataSource.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(query)) {
+
+                statement.setFetchSize(fetchSize); // Set the fetch size
+
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    ResultSetMetaData metaData = resultSet.getMetaData();
+                    int columnCount = metaData.getColumnCount();
+
+                    while (resultSet.next()) {
+                        Map<String, Object> row = new HashMap<>();
+                        for (int i = 1; i <= columnCount; i++) {
+                            row.put(metaData.getColumnName(i), resultSet.getObject(i));
+                        }
+                        sink.next(row);
+                    }
+                    sink.complete();
+                }
+            } catch (SQLException e) {
+                sink.error(e);
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
 
     public Mono<Void> executeMultipleQueries(String[] templateIds, Object[][] params) {
         return Mono.fromRunnable(() -> {
