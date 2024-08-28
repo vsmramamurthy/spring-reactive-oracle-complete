@@ -1,0 +1,171 @@
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const WebpackPwaManifest = require('webpack-pwa-manifest');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const CompressionPlugin = require('compression-webpack-plugin');
+const { ModuleFederationPlugin } = require('webpack').container;
+const WorkboxPlugin = require('workbox-webpack-plugin'); // Import Workbox for service workers
+
+module.exports = {
+  mode: 'production',
+  entry: {
+    main: './app/index.js', // Main entry point
+  },
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: '[name].[chunkhash].js', // Output filename with chunk hash for caching
+    chunkFilename: '[name].[chunkhash].chunk.js', // Chunk filename with chunk hash for caching
+    sourceMapFilename: '[file].map', // Source map filename
+    clean: true, // Clean the output directory before emit
+  },
+  devtool: 'source-map', // Generate source maps
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: 'babel-loader',
+      },
+      // Additional rules for CSS, images, etc.
+    ],
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: './app/index.html',
+      minify: {
+        collapseWhitespace: true,
+        removeComments: true,
+        removeRedundantAttributes: true,
+        useShortDoctype: true,
+        removeEmptyAttributes: true,
+        removeStyleLinkTypeAttributes: true,
+        keepClosingSlash: true,
+        minifyJS: true,
+        minifyCSS: true,
+        minifyURLs: true,
+      },
+    }),
+    new WebpackPwaManifest({
+      name: 'My Progressive Web App',
+      short_name: 'MyPWA',
+      description: 'My awesome Progressive Web App!',
+      background_color: '#ffffff',
+      theme_color: '#ffffff',
+      icons: [
+        {
+          src: path.resolve('app/assets/icon.png'),
+          sizes: [96, 128, 192, 256, 384, 512], // Multiple sizes
+        },
+      ],
+    }),
+    new CopyWebpackPlugin({
+      patterns: [
+        { from: 'public', to: 'public' }, // Copy static assets
+      ],
+    }),
+    new CompressionPlugin({
+      filename: '[path][base].gz',
+      algorithm: 'gzip',
+      test: /\.(js|css|html|svg)$/,
+      threshold: 10240,
+      minRatio: 0.8,
+    }),
+    new ModuleFederationPlugin({
+      name: 'myApp',
+      filename: 'remoteEntry.js',
+      exposes: {
+        './MyComponent': './app/components/MyComponent',
+      },
+      shared: {
+        react: {
+          singleton: true,
+          strictVersion: true, // Ensures that the exact version is used
+          requiredVersion: '^17.0.0',
+        },
+        'react-dom': {
+          singleton: true,
+          strictVersion: true, // Ensures that the exact version is used
+          requiredVersion: '^17.0.0',
+        },
+      },
+    }),
+    new WorkboxPlugin.GenerateSW({
+      clientsClaim: true,
+      skipWaiting: true,
+      runtimeCaching: [
+        {
+          urlPattern: new RegExp('/'), // Cache the main page
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'html-cache',
+            expiration: {
+              maxEntries: 10,
+              maxAgeSeconds: 24 * 60 * 60, // 1 day
+            },
+          },
+        },
+        {
+          urlPattern: /\.(?:js|css)$/, // Cache JS and CSS files
+          handler: 'StaleWhileRevalidate',
+          options: {
+            cacheName: 'static-resources',
+            expiration: {
+              maxEntries: 50,
+              maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+            },
+          },
+        },
+        {
+          urlPattern: /\.(?:png|jpg|jpeg|svg)$/, // Cache images
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'image-cache',
+            expiration: {
+              maxEntries: 50,
+              maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+            },
+          },
+        },
+      ],
+    }),
+  ],
+  optimization: {
+    splitChunks: {
+      chunks: 'all', // Split all chunks
+      minSize: 20000,
+      maxSize: 70000,
+      cacheGroups: {
+        npmPackages: {
+          test: /[\\/]node_modules[\\/]/, // Test for npm packages in node_modules
+          name(module) {
+            // Generate a chunk name based on package name
+            const packageName = module.context.match(/[\\/]node_modules[\\/](.*?)([\\/]|$)/)[1];
+            return `npm.${packageName.replace('@', '')}`;
+          },
+          chunks: 'all',
+        },
+        commons: {
+          test: /[\\/]app[\\/](components|containers)[\\/]/, // Shared components or containers
+          name: 'commons',
+          chunks: 'all',
+          minChunks: 2,
+        },
+      },
+    },
+    runtimeChunk: {
+      name: 'runtime', // Separate runtime code into its own chunk
+    },
+    moduleIds: 'deterministic', // Ensures module IDs are stable
+    chunkIds: 'deterministic', // Ensures chunk IDs are stable
+  },
+  resolve: {
+    extensions: ['.js', '.jsx'],
+  },
+  devServer: {
+    static: {
+      directory: path.join(__dirname, 'dist'),
+    },
+    compress: true,
+    port: 9000,
+  },
+};
