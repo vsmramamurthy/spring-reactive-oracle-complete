@@ -1,0 +1,87 @@
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { WebpackPwaManifest } = require('webpack-pwa-manifest');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const CompressionPlugin = require('compression-webpack-plugin');
+const { ModuleFederationPlugin } = require('webpack').container;
+const WorkboxPlugin = require('workbox-webpack-plugin');
+
+module.exports = {
+  entry: './src/index.js', // Your entry point
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: '[name].[contenthash].js', // Content-hashed filenames
+    clean: true, // Clean the output directory before emit
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: './public/index.html',
+    }),
+    new WebpackPwaManifest({
+      name: 'My App',
+      short_name: 'App',
+      description: 'My awesome Progressive Web App!',
+      background_color: '#ffffff',
+      crossorigin: 'use-credentials', // can be null, use-credentials or anonymous
+      icons: [
+        {
+          src: path.resolve('src/assets/icon.png'),
+          sizes: [96, 128, 192, 256, 384, 512], // multiple sizes
+        },
+      ],
+    }),
+    new CopyWebpackPlugin({
+      patterns: [{ from: 'public', to: '' }],
+    }),
+    new CompressionPlugin({
+      test: /\.(js|css|html|svg)$/,
+      algorithm: 'gzip',
+    }),
+    new ModuleFederationPlugin({
+      name: 'app',
+      library: { type: 'var', name: 'app' },
+      remotes: {},
+      shared: ['react', 'react-dom'], // Adjust as necessary
+    }),
+    new WorkboxPlugin.GenerateSW({
+      clientsClaim: true,
+      skipWaiting: true,
+      runtimeCaching: [
+        {
+          urlPattern: /.*\.(?:js|css)/,
+          handler: 'StaleWhileRevalidate', // Update cache in the background
+          options: {
+            cacheName: 'assets-cache',
+            expiration: {
+              maxEntries: 50,
+              maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+            },
+          },
+        },
+        {
+          urlPattern: /.*\.(?:png|jpg|jpeg|svg|gif)/,
+          handler: 'CacheFirst', // Cache images aggressively
+          options: {
+            cacheName: 'images-cache',
+            expiration: {
+              maxEntries: 50,
+              maxAgeSeconds: 60 * 60 * 24 * 30, // 30 Days
+            },
+          },
+        },
+        {
+          urlPattern: /\/api\/.*\//, // API requests
+          handler: 'NetworkFirst', // Prefer network over cache for dynamic content
+          options: {
+            cacheName: 'api-cache',
+            networkTimeoutSeconds: 10,
+            expiration: {
+              maxEntries: 50,
+              maxAgeSeconds: 5 * 60, // 5 minutes
+            },
+          },
+        },
+      ],
+    }),
+  ],
+};
