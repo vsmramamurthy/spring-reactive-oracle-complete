@@ -27,6 +27,10 @@ module.exports = {
           filename: 'images/[hash][ext][query]',
         },
       },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
+      },
     ],
   },
   optimization: {
@@ -34,7 +38,7 @@ module.exports = {
       chunks: 'all',
       cacheGroups: {
         npmVendor: {
-          test: /[\\/]node_modules[\\/](npm\.[a-z0-9\.\-_]+)/,
+          test: /[\\/]node_modules[\\/]/,
           name(module) {
             const packageName = module.context.match(/[\\/]node_modules[\\/](.*?)([\\/]|$)/)[1];
             return `npm.${packageName.replace('@', '')}`;
@@ -87,55 +91,54 @@ module.exports = {
       skipWaiting: true,
       runtimeCaching: [
         {
-          // Cache for JavaScript chunk files
+          // Cache for JavaScript chunk files with CacheFirst strategy
           urlPattern: /\.(?:js)$/,
-          handler: 'StaleWhileRevalidate',
+          handler: 'CacheFirst',
           options: {
             cacheName: 'js-chunks-cache',
             expiration: {
               maxEntries: 100,
               maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
             },
+            cacheableResponse: {
+              statuses: [0, 200], // Cache responses with these HTTP statuses
+            },
           },
         },
         {
-          // Cache for image files
+          // Cache for image files with CacheFirst strategy
           urlPattern: /\.(?:png|jpg|jpeg|svg|gif)$/,
-          handler: 'StaleWhileRevalidate',
+          handler: 'CacheFirst',
           options: {
             cacheName: 'image-cache',
             expiration: {
               maxEntries: 100,
               maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
             },
+            cacheableResponse: {
+              statuses: [0, 200], // Cache responses with these HTTP statuses
+            },
           },
         },
         {
-          // Cache for CSS files
+          // Cache for CSS files with CacheFirst strategy
           urlPattern: /\.css$/,
-          handler: 'StaleWhileRevalidate',
+          handler: 'CacheFirst',
           options: {
             cacheName: 'css-cache',
             expiration: {
               maxEntries: 100,
               maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
             },
-          },
-        },
-        {
-          // Enable API caching
-          urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
-          handler: 'StaleWhileRevalidate', // Choose the strategy that fits your needs
-          options: {
-            cacheName: 'api-cache',
-            expiration: {
-              maxEntries: 50, // Number of API responses to cache
-              maxAgeSeconds: 5 * 60, // Cache for 5 minutes
-            },
             cacheableResponse: {
               statuses: [0, 200], // Cache responses with these HTTP statuses
             },
           },
+        },
+        {
+          // API requests should not be cached
+          urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+          handler: 'NetworkOnly', // Do not cache API responses
         },
       ],
     }),
