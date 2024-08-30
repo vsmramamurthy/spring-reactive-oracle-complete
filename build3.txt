@@ -95,7 +95,7 @@ module.exports = {
           urlPattern: /\.(?:js)$/,
           handler: 'CacheFirst',
           options: {
-            cacheName: 'js-chunks-cache',
+            cacheName: 'js-chunks-cache-v1', // Versioned cache name
             expiration: {
               maxEntries: 100,
               maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
@@ -110,7 +110,7 @@ module.exports = {
           urlPattern: /\.(?:png|jpg|jpeg|svg|gif)$/,
           handler: 'CacheFirst',
           options: {
-            cacheName: 'image-cache',
+            cacheName: 'image-cache-v1', // Versioned cache name
             expiration: {
               maxEntries: 100,
               maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
@@ -125,7 +125,7 @@ module.exports = {
           urlPattern: /\.css$/,
           handler: 'CacheFirst',
           options: {
-            cacheName: 'css-cache',
+            cacheName: 'css-cache-v1', // Versioned cache name
             expiration: {
               maxEntries: 100,
               maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
@@ -136,9 +136,13 @@ module.exports = {
           },
         },
         {
-          // API requests should not be cached
-          urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
-          handler: 'NetworkOnly', // Do not cache API responses
+          // Dynamic API fetching based on the application
+          urlPattern: ({ url }) => {
+            // Custom logic to dynamically match API requests
+            // For example, match all URLs containing '/api/' or any other dynamic logic
+            return url.pathname.includes('/api/');
+          },
+          handler: 'NetworkOnly', // Always fetch from network and do not cache
         },
       ],
     }),
