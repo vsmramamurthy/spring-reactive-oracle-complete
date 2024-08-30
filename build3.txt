@@ -10,7 +10,7 @@ module.exports = {
   entry: './src/index.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: '[name].[contenthash].js', // Dynamic chunk naming
+    filename: '[chunkhash].js', // Use chunkhash without name for the output filename
     clean: true, // Clean the output directory before emit
   },
   module: {
