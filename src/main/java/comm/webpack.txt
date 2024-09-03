@@ -1,0 +1,92 @@
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const WebpackPwaManifest = require('webpack-pwa-manifest');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const CompressionPlugin = require('compression-webpack-plugin');
+const { ModuleFederationPlugin } = require('webpack').container;
+const { InjectManifest } = require('workbox-webpack-plugin');
+
+module.exports = {
+  mode: 'production',
+  entry: './app/root.js', // Main entry point for the application
+  output: {
+    path: path.resolve(__dirname, 'dist'), // Output directory for all assets
+    filename: '[name].[chunkhash].js', // Use chunkhash for cache busting
+    publicPath: '/', // Base URL for all assets
+    clean: true, // Clean the output directory before each build
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: 'babel-loader',
+      },
+      {
+        test: /\.(png|jpe?g|gif|svg)$/i,
+        type: 'asset/resource',
+      },
+    ],
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: './app/index.html',
+      inject: 'body',
+      scriptLoading: 'defer', // Defer script loading for better performance
+    }),
+    new WebpackPwaManifest({
+      name: 'My PWA',
+      short_name: 'PWA',
+      description: 'My awesome Progressive Web App!',
+      background_color: '#ffffff',
+      theme_color: '#ffffff',
+      start_url: '/app/', // Ensure PWA starts in the correct scope
+      icons: [
+        {
+          src: path.resolve('app/assets/icon.png'),
+          sizes: [96, 128, 192, 256, 384, 512],
+        },
+      ],
+    }),
+    new CopyWebpackPlugin({
+      patterns: [
+        { from: 'app/assets', to: 'assets' }, // Copy static assets to dist
+      ],
+    }),
+    new CompressionPlugin({
+      algorithm: 'gzip',
+      test: /\.(js|css|html|svg)$/, // Compress these file types
+    }),
+    new ModuleFederationPlugin({
+      name: 'app',
+      remotes: {
+        component1: 'component1@http://localhost:3001/remoteEntry.js',
+        component2: 'component2@http://localhost:3002/remoteEntry.js',
+        // Add more remotes as needed
+      },
+      shared: { 
+        react: { singleton: true }, 
+        'react-dom': { singleton: true }
+      },
+    }),
+    new InjectManifest({
+      swSrc: './src/custom-sw.js', // Path to your custom service worker file
+      swDest: 'service-worker.js', // Output path for the generated custom service worker
+      exclude: [/\.map$/, /manifest$/, /\.htaccess$/, /api\//], // Exclude non-cacheable items
+    }),
+  ],
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        npm: {
+          test: /[\\/]node_modules[\\/](.*)[\\/]/,
+          name(module) {
+            const packageName = module.context.match(/[\\/]node_modules[\\/](.*?)([\\/]|$)/)[1];
+            return `npm.${packageName.replace('@', '')}`;
+          },
+          chunks: 'all',
+        },
+      },
+    },
+  },
+};
