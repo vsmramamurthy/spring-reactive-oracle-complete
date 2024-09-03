@@ -51,6 +51,8 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: './src/index.html',
+	   scriptLoading: 'defer',
+      hash: true,
     }),
     new WebpackPwaManifest({
       name: 'My App',
@@ -87,8 +89,11 @@ module.exports = {
       shared: require('./package.json').dependencies,
     }),
     new GenerateSW({
+      swDest: 'service-worker.js',
       clientsClaim: true,
       skipWaiting: true,
+      cleanupOutdatedCaches: true,
+      exclude: [/\.map$/, /manifest$/, /\.htaccess$/, /api\//],
       runtimeCaching: [
         {
           // Cache for JavaScript chunk files with CacheFirst strategy
