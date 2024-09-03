@@ -2,19 +2,27 @@
 
 import { precacheAndRoute } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
-import { CacheFirst } from 'workbox-strategies';
+import { CacheFirst, NetworkFirst } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
-// Precache files (this will be automatically generated during build)
-precacheAndRoute(self.__WB_MANIFEST, {
-  // This helps to remove outdated caches when deploying new versions
-  cleanupOutdatedCaches: true,
+// Immediately claim clients and skip waiting
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
 });
 
-// Cache images with a CacheFirst strategy
+self.addEventListener('activate', (event) => {
+  event.waitUntil(clients.claim());
+});
+
+// Precache files (this will be automatically generated during build)
+precacheAndRoute(self.__WB_MANIFEST, {
+  cleanupOutdatedCaches: true, // Automatically cleanup outdated caches
+});
+
+// Cache images based on URL patterns with CacheFirst strategy
 registerRoute(
-  ({ request }) => request.destination === 'image',
+  ({ url }) => url.pathname.match(/\.(?:png|jpg|jpeg|svg|gif)$/),
   new CacheFirst({
     cacheName: 'images-cache',
     plugins: [
@@ -26,9 +34,9 @@ registerRoute(
   })
 );
 
-// Cache JavaScript and CSS files with a CacheFirst strategy
+// Cache JavaScript and CSS files based on URL patterns with CacheFirst strategy
 registerRoute(
-  ({ request }) => request.destination === 'script' || request.destination === 'style',
+  ({ url }) => url.pathname.match(/\.(?:js|css)$/),
   new CacheFirst({
     cacheName: 'static-resources',
     plugins: [
@@ -43,9 +51,9 @@ registerRoute(
   })
 );
 
-// Security: do not cache API requests
+// Prevent caching of API requests based on URL patterns
 registerRoute(
-  ({ url }) => url.pathname.startsWith('/api/'), // Customize based on your API path
+  ({ url }) => url.pathname.startsWith('/api/'),
   new NetworkFirst({
     cacheName: 'api-cache',
     networkTimeoutSeconds: 10, // Fallback to cache if the network request fails within 10 seconds
