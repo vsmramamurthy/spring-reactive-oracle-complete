@@ -1,0 +1,33 @@
+server {
+    listen 80;
+    server_name yourdomain.com;
+
+    # Root directory of your deployed app
+    root /path/to/your/deployed/app/dist;
+
+    # Serve the index.html for any requests to avoid 404s in a SPA
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Ensure JavaScript files are served with the correct MIME type
+    location ~* \.js$ {
+        types {
+            application/javascript js;
+        }
+        add_header Cache-Control "public, max-age=31536000";  # Cache JS files for a year
+    }
+
+    # Ensure the service worker is served correctly
+    location /service-worker.js {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";  # Always fetch the latest service worker
+        expires -1;
+        try_files $uri =404;  # Serve the file if it exists, otherwise 404
+    }
+
+    # Serve CSS and image files with long cache
+    location ~* \.(css|png|jpg|jpeg|gif|svg|ico)$ {
+        expires 1y;
+        add_header Cache-Control "public";
+    }
+}
